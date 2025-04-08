@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pygridfit"
+version = "0.1.0"
+description = "A Python project named pygridfit"
+authors = []
+requires-python = ">=3.9.0"
+dependencies = [
+    "matplotlib>=3.9.4",
+    "numpy>=2.0.2",
+    "pytest>=8.3.5",
+    "scipy>=1.13.1",
+]
+readme = {file = "README.md", content-type = "text/markdown"}
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest",
+    "twine", 
+    "maturin",
+]
+
+[tool.setuptools]
+packages = {find = {}}
+include-package-data = true
+
