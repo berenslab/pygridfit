@@ -1,4 +1,3 @@
-# solvers.py
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg as spla

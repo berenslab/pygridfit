@@ -1,9 +1,8 @@
 import numpy as np
-from scipy.sparse import coo_matrix, csr_matrix
+from scipy.sparse import coo_matrix
 
 
 def build_interpolation_matrix(data, method="triangle"):
-    # data might include x, y, z, xnodes, ynodes, dx, dy, etc.
     # Construct the matrix A depending on chosen method
     if method.lower() == "triangle":
         return _build_triangle_matrix(data)

@@ -1,8 +1,6 @@
-# gridfit.py
 from typing import Optional, Union
 
 import numpy as np
-from scipy.sparse import spmatrix
 
 from . import interpolation, regularizers, solvers, utils
 
