@@ -30,55 +30,42 @@ class GridFit:
         yscale: float = 1.0,
     ):
         # Store parameters
-        self.x = x
-        self.y = y
-        self.z = z
-        self.xnodes = xnodes
-        self.ynodes = ynodes
-        self.smoothness = smoothness
-        self.extend = extend
-        self.interp = interp
-        self.regularizer = regularizer
-        self.solver = solver
-        self.maxiter = maxiter
-        self.autoscale = autoscale
-        self.xscale = xscale
-        self.yscale = yscale
-        # etc.
-
-        # Possibly do some basic validation
-        # e.g. self.smoothness, self.extend = utils.check_params(self.smoothness, self.extend)
-        # self.data_validated = utils.validate_inputs(...)
+        self.data = utils.validate_inputs(
+            x=x, 
+            y=y, 
+            z=z, 
+            xnodes=xnodes, 
+            ynodes=ynodes,
+            smoothness=smoothness, 
+            maxiter=maxiter,
+            extend=extend, 
+            autoscale=autoscale,
+            xscale=xscale, 
+            yscale=yscale,
+            interp=interp,
+            regularizer=regularizer,
+            solver=solver,
+        )
 
     def fit(self):
         """
         Build interpolation matrix, regularization matrix, solve, 
         and return the fitted surface.
         """
-        # 1) validate or preprocess inputs
-        self.data = data = utils.validate_inputs(
-            x=self.x, 
-            y=self.y, 
-            z=self.z, 
-            xnodes=self.xnodes, 
-            ynodes=self.ynodes,
-            smoothness=self.smoothness, 
-            maxiter=self.maxiter,
-            extend=self.extend, 
-            autoscale=self.autoscale,
-            xscale=self.xscale, 
-            yscale=self.yscale,
-            interp=self.interp,
-            regularizer=self.regularizer,
-            solver=self.solver,
-        )
+        # 1) prepare data
+        data = self.data
+        smoothness = data["smoothness"]
+        maxiter = data["maxiter"]
+        interp = data["interp"]
+        regularizer = data["regularizer"]
+        solver = data["solver"]
 
         # 2) build interpolation matrix A from `interpolation.py`
-        self.A = A = interpolation.build_interpolation_matrix(data, method=self.interp)
+        self.A = A = interpolation.build_interpolation_matrix(data, method=interp)
 
         # 3) build regularizer Areg from `regularizers.py`
-        self.Areg = Areg = regularizers.build_regularizer_matrix(data, reg_type=self.regularizer, smoothness=self.smoothness)
+        self.Areg = Areg = regularizers.build_regularizer_matrix(data, reg_type=regularizer, smoothness=smoothness)
 
         # 4) combine and solve ( solver.* ) 
-        self.zgrid, self.xgrid, self.ygrid = (zgrid, xgrid, ygrid) = solvers.solve_system(A, Areg, data, self.solver, maxiter=self.maxiter)
+        self.zgrid, self.xgrid, self.ygrid = solvers.solve_system(A, Areg, data, solver, maxiter=maxiter)
 

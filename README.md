@@ -6,7 +6,7 @@ Python port of the MATLAB [gridfit](https://www.mathworks.com/matlabcentral/file
 ## Installation
 
 ```bash
-source .pygridfit/bin/activate
+source .venv/bin/activate
 uv pip install ".[dev]"
 ```
 
