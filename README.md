@@ -12,18 +12,4 @@ uv pip install ".[dev]"
 
 ## Usage
 
-```python
-
-from pygridfit import GridFit
-
-gf = GridFit(
-    x, y, z,
-    xnodes=xnodes,
-    ynodes=ynodes,
-    smoothness=15,
-    interp="triangle",
-    regularizer="gradient",
-    solver="normal",
-)
-gf.fit()
-```
+See the [example](https://github.com/berenslab/pygridfit/blob/main/notebooks/example.ipynb) notebook for usage.
