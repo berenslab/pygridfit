@@ -14,6 +14,7 @@ dependencies = [
     "pytest>=8.3.5",
     "scikit-learn>=1.6.1",
     "scipy>=1.13.1",
+    "watermark>=2.5.0",
 ]
 readme = {file = "README.md", content-type = "text/markdown"}
 

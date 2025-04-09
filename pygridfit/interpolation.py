@@ -1,9 +1,32 @@
+from typing import Any, Dict
+
 import numpy as np
-from scipy.sparse import coo_matrix
+import scipy.sparse
+from scipy.sparse import coo_matrix, csr_matrix
 
 
-def build_interpolation_matrix(data, method="triangle"):
-    # Construct the matrix A depending on chosen method
+def build_interpolation_matrix(data: Dict[str, Any], method: str) -> csr_matrix:
+    """
+    Construct the interpolation matrix A depending on the chosen method.
+    
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Dictionary containing:
+          - "x", "y": arrays of data points (or similarly used).
+          - "ngrid": int, total number of grid points
+          - "ny": int, number of grid points in the y dimension
+          - Possibly "tx", "ty", "ind": precomputed sub-cell info
+            used by the interpolation routines.
+    method : str
+        The interpolation method. One of {"triangle", "bilinear", "nearest"}.
+    
+    Returns
+    -------
+    A : csr_matrix
+        A sparse matrix of shape (nDataPoints, ngrid) representing the interpolation
+        weights.
+    """
     if method.lower() == "triangle":
         return _build_triangle_matrix(data)
     elif method.lower() == "bilinear":
@@ -16,10 +39,24 @@ def build_interpolation_matrix(data, method="triangle"):
         raise ValueError(f"Unknown interpolation method: {method}")
 
 
-def _build_triangle_matrix(data):
+def _build_triangle_matrix(data: Dict[str, Any]) -> csr_matrix:
     """
-    Builds the interpolation matrix A for linear (triangle) interpolation
-    in each grid cell. 
+    Builds the interpolation matrix A for linear (triangle) interpolation in each grid cell.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Must contain:
+          - "x", "y": data points (or similarly used).
+          - "tx", "ty": local coordinates within each cell
+          - "ind": the 1-based cell index for each data point
+          - "ngrid": total number of grid points
+          - "ny": number of grid points along y dimension
+    
+    Returns
+    -------
+    A_coo.to_csr() : csr_matrix
+        The sparse interpolation matrix of shape (n, ngrid).
     """
     n = len(data["x"])
     ngrid = data["ngrid"]
@@ -51,15 +88,30 @@ def _build_triangle_matrix(data):
     A_coo = coo_matrix((vals, (row_indices, col_indices)), shape=(n, ngrid))
     return A_coo.tocsr()
 
-def _build_nearest_matrix(data):
+def _build_nearest_matrix(data: Dict[str, Any]) -> csr_matrix:
     """
-    Builds the interpolation matrix A for 'nearest' interpolation
-    in each grid cell, replicating the MATLAB snippet:
+    Builds the interpolation matrix A for 'nearest' interpolation in each grid cell,
+    replicating the MATLAB snippet:
 
       k = round(1-ty) + round(1-tx)*ny;
       A = sparse((1:n)', ind + k, ones(n,1), n, ngrid);
 
     with appropriate 0-based indexing adjustments.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Must contain:
+          - "x", "y": data points
+          - "tx", "ty": local coordinates within each cell
+          - "ind": 1-based cell index for each data point
+          - "ny": number of grid points along y dimension
+          - "ngrid": total number of grid points
+    
+    Returns
+    -------
+    A_coo.tocsr() : csr_matrix
+        The sparse nearest-neighbor interpolation matrix of shape (n, ngrid).
     """
 
     n = len(data["x"])
@@ -87,16 +139,31 @@ def _build_nearest_matrix(data):
     return A_coo.tocsr()
 
 
-def _build_bilinear_matrix(data):
+def _build_bilinear_matrix(data: Dict[str, Any]) -> csr_matrix:
     """
-    Builds the interpolation matrix A for bilinear interpolation
-    in each grid cell, replicating the MATLAB snippet:
+    Builds the interpolation matrix A for bilinear interpolation in each grid cell,
+    replicating the MATLAB snippet:
 
       A = sparse( (1:n)', [ind, ind+1, ind+ny, ind+ny+1], 
                   [(1-tx).*(1-ty), (1-tx).*ty, tx.*(1-ty), tx.*ty],
                   n, ngrid );
 
     with 0-based indexing in Python.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Must contain:
+          - "x", "y": data points
+          - "tx", "ty": local coordinates in cell
+          - "ind": 1-based cell index
+          - "ngrid": total grid points
+          - "ny": number of grid points along y dimension
+    
+    Returns
+    -------
+    A_coo.tocsr() : csr_matrix
+        The bilinear interpolation matrix of shape (n, ngrid).
     """
     
     n = len(data["x"])

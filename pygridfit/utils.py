@@ -1,4 +1,4 @@
-from typing import Optional, Union, cast
+from typing import Any, Dict, Optional, Union, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -8,6 +8,20 @@ def _resolve_abbrev(value: str, valid_options: list[str], fieldname: str) -> str
     """
     Resolve a possibly-abbreviated string 'value' to one of the entries in valid_options,
     if there is exactly one match. If none or more than one match, raise ValueError.
+
+    Parameters
+    ----------
+    value : str
+        The input string to match.
+    valid_options : list[str]
+        A list of valid strings (full options).
+    fieldname : str
+        A descriptive name of the field for error messages.
+
+    Returns
+    -------
+    str
+        The matched (fully expanded) option from valid_options.
     """
     val_lower = value.lower()
     matches = [opt for opt in valid_options if opt.startswith(val_lower)]
@@ -19,6 +33,7 @@ def _resolve_abbrev(value: str, valid_options: list[str], fieldname: str) -> str
         raise ValueError(f"Ambiguous {fieldname} option: {value}")
 
 
+
 def check_params(
     smoothness: Union[float, list[float], NDArray[np.float64], None],
     extend: str,
@@ -27,11 +42,34 @@ def check_params(
     solver: str,
     tilesize: Optional[float] = None,
     overlap: Optional[float] = None,
-) -> tuple[NDArray[np.float64] | float, str, str, str, str, float, float]:
+) -> tuple[Union[NDArray[np.float64], float], str, str, str, str, float, float]:
     """
-    Validate and standardize the gridfit parameters. Mimics the MATLAB check_params logic.
-    Returns a 7-element tuple of (smoothness, extend, interp, regularizer, solver,
-    tilesize, overlap) all in validated form.
+    Validate and standardize the gridfit parameters, mimicking the MATLAB check_params logic.
+
+    Parameters
+    ----------
+    smoothness : float | list[float] | NDArray[np.float64] | None
+        Desired smoothing parameter (scalar or up to 2-element array).
+    extend : str
+        Behavior for data outside node bounds. One of ["never","warning","always"].
+    interp : str
+        Interpolation type. One of ["bilinear","nearest","triangle"].
+    regularizer : str
+        Regularizer type. One of ["springs","diffusion","laplacian","gradient"].
+    solver : str
+        Solver type. One of ["symmlq","lsqr","normal"].
+    tilesize : float, optional
+        Size of each tile if using tiling, otherwise inf to disable tiling.
+    overlap : float, optional
+        Overlap fraction (0 <= overlap <= 0.5) between tiles if tiling is used.
+
+    Returns
+    -------
+    tuple
+        A 7-element tuple:
+        (smoothness, extend, interp, regularizer, solver, tilesize, overlap),
+        where smoothness is either a float or an array, and the rest are
+        strings/floats in validated form.
     """
 
     # ----------------------------------------------------------------
@@ -99,6 +137,7 @@ def check_params(
 
     return (smoothness, extend, interp, regularizer, solver, tilesize, overlap)
   
+
 def validate_inputs(
     x: Union[NDArray[np.float64], list[float]],
     y: Union[NDArray[np.float64], list[float]],
@@ -106,7 +145,7 @@ def validate_inputs(
     xnodes: Union[NDArray[np.float64], int],
     ynodes: Union[NDArray[np.float64], int],
     smoothness: Union[float, NDArray[np.float64]],
-    maxiter: Union[int, None],
+    maxiter: Optional[int],
     extend: str,
     autoscale: str,
     xscale: float,
@@ -114,10 +153,47 @@ def validate_inputs(
     interp: str,
     regularizer: str,
     solver: str,
-) -> dict:
+) -> Dict[str, Any]:
     """
     Preprocess and validate inputs in a style similar to the beginning of gridfit.m.
     Returns a dictionary of 'prepared' data needed by the solver or next step.
+
+    Parameters
+    ----------
+    x, y, z : array-like of float
+        Data coordinates and values. Each must be the same length.
+    xnodes, ynodes : array-like of float or int
+        If int, we auto-generate that many nodes from min->max of x or y.
+        If array-like, must be strictly increasing.
+    smoothness : float | NDArray[np.float64]
+        Smoothing parameter, typically validated earlier.
+    maxiter : int or None
+        Iteration limit for iterative solvers; if None, a default is chosen.
+    extend : str
+        Bound extension behavior, e.g. 'never','warning','always'.
+    autoscale : str
+        If 'on', xscale, yscale are set to mean cell size. Then turned 'off'.
+    xscale, yscale : float
+        Scaling parameters used for regularization weight (set if autoscale='on').
+    interp : str
+        Interpolation method, e.g. 'bilinear','nearest','triangle'.
+    regularizer : str
+        The method for building a regularizer, e.g. 'diffusion','gradient','springs'.
+    solver : str
+        One of 'symmlq','lsqr','normal'.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing validated and computed fields:
+        {
+          "x", "y", "z",
+          "xnodes", "ynodes", "dx", "dy", "nx", "ny", "ngrid",
+          "xmin", "xmax", "ymin", "ymax",
+          "smoothness", "maxiter", "extend", "autoscale",
+          "xscale", "yscale", "interp", "regularizer", "solver",
+          "ind", "indx", "indy", "tx", "ty", ...
+        }
     """
 
     # Convert x, y, z to flat numpy arrays
@@ -173,7 +249,17 @@ def validate_inputs(
         raise ValueError("x, y, z must be of the same length.")
 
     # Function to adjust node arrays if data extends beyond them
-    def maybe_extend(bound_val: float, node_array: NDArray[np.float64], side: str, axis: str):
+    def maybe_extend(
+        bound_val: float,
+        node_array: NDArray[np.float64],
+        side: str,
+        axis: str
+    ) -> None:     
+        """
+        Possibly extend the node_array (in-place) if 'extend' is not 'never'.
+        side is 'start' or 'end' to indicate which boundary we are checking.
+        axis is 'x' or 'y' for error messages.
+        """   
         if side == "start":
             if bound_val < node_array[0]:
                 if extend == "always":
@@ -225,9 +311,7 @@ def validate_inputs(
     tx = np.clip((x - xnodes_arr[indx - 1]) / dx[indx - 1], 0, 1)
     ty = np.clip((y - ynodes_arr[indy - 1]) / dy[indy - 1], 0, 1)
 
-    # Just return everything. If you want, you can build other derived
-    # arrays (e.g. indexing or interpolation factors) here, but you may
-    # also prefer to do that in the next step to keep the code flexible.
+    # Just return everything. 
     return {
         "x": x,
         "y": y,

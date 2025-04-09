@@ -1,10 +1,32 @@
-from typing import Union
+from typing import Any, Dict, Union
 
 import numpy as np
-from scipy.sparse import coo_matrix, vstack
+from scipy.sparse import coo_matrix, csr_matrix, vstack
 
 
-def build_regularizer_matrix(data, reg_type="gradient", smoothness=1.0):
+def build_regularizer_matrix(
+    data: Dict[str, Any],
+    reg_type: str,
+    smoothness: Union[float, np.ndarray]
+) -> csr_matrix:
+    """
+    Constructs the specified regularizer matrix for gridfit.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Dictionary containing necessary grid info, e.g.:
+          - 'nx', 'ny', 'ngrid', 'dx', 'dy', 'xscale', 'yscale'
+    reg_type : str
+        Name of the regularizer: 'gradient', 'diffusion'/'laplacian', or 'springs'
+    smoothness : float or np.ndarray
+        Smoothing parameter (scalar or array)
+
+    Returns
+    -------
+    csr_matrix
+        The regularizer matrix of shape (m, ngrid), where m depends on the method.
+    """
     if reg_type.lower() == "gradient":
         return _build_gradient_reg(data, smoothness)
     elif reg_type.lower() in ["diffusion", "laplacian"]:
@@ -15,10 +37,28 @@ def build_regularizer_matrix(data, reg_type="gradient", smoothness=1.0):
     else:
         raise ValueError(f"Only 'gradient' regularizer is implemented now. Got {reg_type}")
 
-def _build_gradient_reg(data, smoothness: Union[float, np.ndarray] = 1.0):
+def _build_gradient_reg(
+    data: Dict[str, Any],
+    smoothness: Union[float, np.ndarray]
+) -> csr_matrix:
     """
-    Builds the gradient-based regularizer (two PDE-like stencils).
-    Matches exactly the MATLAB indexing logic for 'gradient'.
+    Builds the gradient-based regularizer (two PDE-like stencils),
+    matching the MATLAB indexing logic for 'gradient'.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        - 'nx', 'ny': grid dimensions
+        - 'ngrid': total number of grid points
+        - 'dx', 'dy': 1D arrays of cell sizes
+        - 'xscale', 'yscale': float scaling factors
+    smoothness : float or np.ndarray
+        Smoothing parameter.
+
+    Returns
+    -------
+    csr_matrix
+        The stacked gradient regularizer matrix.
     """
 
     nx = data["nx"]
@@ -139,10 +179,28 @@ def _build_gradient_reg(data, smoothness: Union[float, np.ndarray] = 1.0):
 
     return Areg
 
-def _build_diffusion_reg(data, smoothness):
+
+def _build_diffusion_reg(
+    data: Dict[str, Any],
+    smoothness: Union[float, np.ndarray]
+) -> csr_matrix:
     """
-    Thermal diffusion or 'laplacian' regularizer, replicating 
-    the MATLAB code for case {'diffusion','laplacian'}.
+    Thermal diffusion or Laplacian regularizer, replicating
+    the MATLAB code for {'diffusion','laplacian'}.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        - 'nx', 'ny', 'ngrid'
+        - 'dx', 'dy' (1D arrays)
+        - 'xscale', 'yscale'
+    smoothness : float or np.ndarray
+        Smoothing parameter.
+
+    Returns
+    -------
+    csr_matrix
+        The Laplacian regularizer matrix.
     """
 
     nx = data["nx"]
@@ -226,10 +284,27 @@ def _build_diffusion_reg(data, smoothness):
 
 
 
-def _build_springs_reg(data, smoothness):
+def _build_springs_reg(
+    data: Dict[str, Any],
+    smoothness: Union[float, np.ndarray]
+) -> csr_matrix:
     """
-    Spring-based regularizer: zero-rest-length springs along grid edges and diagonals.
-    Ported from the MATLAB implementation.
+    Spring-based regularizer: zero-rest-length springs along
+    grid edges and diagonals, ported from the MATLAB implementation.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        - 'nx', 'ny', 'ngrid'
+        - 'dx', 'dy'
+        - 'xscale', 'yscale'
+    smoothness : float or np.ndarray
+        Smoothing parameter.
+
+    Returns
+    -------
+    csr_matrix
+        The "springs" regularizer matrix.
     """
 
     nx = data["nx"]
