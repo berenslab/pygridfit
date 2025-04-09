@@ -5,9 +5,17 @@ Python port of the MATLAB [gridfit](https://www.mathworks.com/matlabcentral/file
 
 ## Installation
 
+To install the latest tagged version:
+
 ```bash
-source .venv/bin/activate
-uv pip install ".[dev]"
+pip install pygridfit
+```
+
+Or to install the development version, clone the repository and install it with `pip install -e`:
+
+```bash
+git clone https://github.com/berenslab/pygridfit.git
+pip install -e pygridfit
 ```
 
 ## Usage

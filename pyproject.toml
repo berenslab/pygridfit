@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pygridfit"
 version = "0.1.2"
-description = "A Python project named pygridfit"
+description = "Python Port of gridfit (John D'Errico, 2006)"
 authors = []
 requires-python = ">=3.9.0"
 dependencies = [
