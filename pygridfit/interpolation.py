@@ -7,11 +7,11 @@ def build_interpolation_matrix(data, method="triangle"):
     if method.lower() == "triangle":
         return _build_triangle_matrix(data)
     elif method.lower() == "bilinear":
-        raise NotImplementedError("Bilinear interpolation is not implemented yet.")
-        # return _bilinear_interpolation(data)
+        # raise NotImplementedError("Bilinear interpolation is not implemented yet.")
+        return _build_bilinear_matrix(data)
     elif method.lower() == "nearest":
-        raise NotImplementedError("Nearest neighbor interpolation is not implemented yet.")
-        # return _nearest_interpolation(data)
+        # raise NotImplementedError("Nearest neighbor interpolation is not implemented yet.")
+        return _build_nearest_matrix(data)
     else:
         raise ValueError(f"Unknown interpolation method: {method}")
 
@@ -49,4 +49,88 @@ def _build_triangle_matrix(data):
     col_indices = col_indices[mask]
 
     A_coo = coo_matrix((vals, (row_indices, col_indices)), shape=(n, ngrid))
+    return A_coo.tocsr()
+
+def _build_nearest_matrix(data):
+    """
+    Builds the interpolation matrix A for 'nearest' interpolation
+    in each grid cell, replicating the MATLAB snippet:
+
+      k = round(1-ty) + round(1-tx)*ny;
+      A = sparse((1:n)', ind + k, ones(n,1), n, ngrid);
+
+    with appropriate 0-based indexing adjustments.
+    """
+
+    n = len(data["x"])
+    ngrid = data["ngrid"]
+    ny = data["ny"]
+    tx, ty = data["tx"], data["ty"]
+    ind = data["ind"]  # 1-based cell index from validate_inputs
+    rows = np.arange(n)
+
+    # Replicate the MATLAB formula: k = round(1-ty) + round(1-tx)*ny;
+    # Each data point contributes to exactly 1 corner in the cell.
+    k = np.round(1 - ty) + np.round(1 - tx)*ny
+    # k is float array, so cast to int
+    k = k.astype(int)
+
+    # col_indices in MATLAB is (ind + k),
+    # but we must shift by -1 for Python's 0-based indexing
+    col_indices = (ind + k - 1).astype(int)
+
+    # The interpolation weight is always 1 for nearest neighbor
+    vals = np.ones(n, dtype=float)
+
+    # Build the sparse matrix in COO, then convert to CSR
+    A_coo = coo_matrix((vals, (rows, col_indices)), shape=(n, ngrid))
+    return A_coo.tocsr()
+
+
+def _build_bilinear_matrix(data):
+    """
+    Builds the interpolation matrix A for bilinear interpolation
+    in each grid cell, replicating the MATLAB snippet:
+
+      A = sparse( (1:n)', [ind, ind+1, ind+ny, ind+ny+1], 
+                  [(1-tx).*(1-ty), (1-tx).*ty, tx.*(1-ty), tx.*ty],
+                  n, ngrid );
+
+    with 0-based indexing in Python.
+    """
+    
+    n = len(data["x"])
+    ngrid = data["ngrid"]
+    ny = data["ny"]
+    tx, ty = data["tx"], data["ty"]
+    ind = data["ind"]  # 1-based cell index
+    rows = np.arange(n)
+
+    # corner weights: 4 corners => each data point yields 4 entries
+    corner_vals = np.stack([
+        (1 - tx)*(1 - ty),
+        (1 - tx)*ty,
+        tx*(1 - ty),
+        tx*ty
+    ], axis=1).ravel()
+
+    # row indices: replicate each data index 4 times
+    row_indices = np.tile(rows[:, None], 4).ravel()
+
+    # col_indices in MATLAB: [ind, ind+1, ind+ny, ind+ny+1]
+    # shift by -1 for Python 0-based
+    col_indices = np.stack([
+        ind,
+        ind + 1,
+        ind + ny,
+        ind + ny + 1
+    ], axis=1).ravel() - 1
+
+    # Optionally, mask out any zero weights if you want
+    mask = (corner_vals != 0)
+    corner_vals = corner_vals[mask]
+    row_indices = row_indices[mask]
+    col_indices = col_indices[mask]
+
+    A_coo = coo_matrix((corner_vals, (row_indices, col_indices)), shape=(n, ngrid))
     return A_coo.tocsr()
