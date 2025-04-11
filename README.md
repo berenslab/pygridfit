@@ -18,7 +18,7 @@ git clone https://github.com/berenslab/pygridfit.git
 pip install -e pygridfit
 ```
 
-By default `pygridfit` will use `scipy.sparse.linalg.spsolve` to solve sparse matrix, which would be slow. For faster performance, you can install [scikit-sparse](https://github.com/scikit-sparse/scikit-sparse) manually (as it requires extra dependencies):
+By default, `pygridfit` uses `scipy.sparse.linalg.spsolve` to solve sparse matrices, which can be slow. For faster performance, you can manually install [scikit-sparse](https://github.com/scikit-sparse/scikit-sparse), as it requires additional dependencies:
 
 ```bash
 # mac
