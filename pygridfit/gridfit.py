@@ -85,7 +85,7 @@ class GridFit:
         """
 
         # Store parameters
-        self.data = utils.validate_inputs(
+        self.params, self.data = utils.validate_inputs(
             x=x, 
             y=y, 
             z=z, 
@@ -106,7 +106,7 @@ class GridFit:
         self.xgrid: Optional[np.ndarray] = None
         self.ygrid: Optional[np.ndarray] = None
 
-    def fit(self)->None:
+    def fit(self)->"GridFit":
         """
         Build the interpolation and regularization matrices, solve the system,
         and store the fitted surface in `self.zgrid`, `self.xgrid`, and `self.ygrid`.
@@ -122,22 +122,19 @@ class GridFit:
         """
         # 1) prepare data
         data = self.data
-        smoothness = data["smoothness"]
-        maxiter = data["maxiter"]
-        interp = data["interp"]
-        regularizer = data["regularizer"]
-        solver = data["solver"]
+        params = self.params
 
         # 2) build interpolation matrix A from `interpolation.py`
-        self.A = A = interpolation.build_interpolation_matrix(data, method=interp)
+        self.A = A = interpolation.build_interpolation_matrix(data, method=params['interp'])
 
         # 3) build regularizer Areg from `regularizers.py`
-        self.Areg = Areg = regularizers.build_regularizer_matrix(data, reg_type=regularizer, smoothness=smoothness)
+        self.Areg = Areg = regularizers.build_regularizer_matrix(data, reg_type=params['regularizer'], smoothness=params['smoothness'])
 
         # 4) combine and solve ( solver.* ) 
-        self.zgrid, self.xgrid, self.ygrid = solvers.solve_system(A, Areg, data, solver, maxiter=maxiter)
+        self.zgrid, self.xgrid, self.ygrid = solvers.solve_system(A, Areg, data, solver=params['solver'], smoothness=params["smoothness"],  maxiter=params['maxiter'])
 
-
+        return self
+    
 class TiledGridFit:
     """
     A tiled version of GridFit, which handles extremely large grids by splitting
@@ -217,7 +214,7 @@ class TiledGridFit:
 
         # Validate base parameters just like GridFit does
         # We'll store them in a dictionary "data" for consistency
-        self.data = utils.validate_inputs(
+        self.params, self.data = utils.validate_inputs(
             x=x, 
             y=y, 
             z=z, 
@@ -232,29 +229,30 @@ class TiledGridFit:
             interp=interp,
             regularizer=regularizer,
             solver=solver,
+            tilesize=tilesize,
+            overlap=overlap,
         )
-
-        # Additional tiled-gridfit fields
-        self.data["tilesize"] = tilesize
-        self.data["overlap"] = overlap
 
         # Final outputs after calling fit()
         self.zgrid: Optional[np.ndarray] = None
         self.xgrid: Optional[np.ndarray] = None
         self.ygrid: Optional[np.ndarray] = None
 
-    def fit(self) -> None:
+    def fit(self) -> "TiledGridFit":
         """
         Fit the entire grid in overlapping tiles, blend them together, and store
         the final surface in self.zgrid. Tiles with <4 data points are assigned NaNs.
         Also sets self.xgrid, self.ygrid of shape (ny, nx).
         """
         data = self.data
+        params = self.params
+
+
         xnodes = data["xnodes"]
         ynodes = data["ynodes"]
         nx, ny = data["nx"], data["ny"]
-        tilesize = data["tilesize"]
-        overlap_frac = data["overlap"]
+        tilesize = params["tilesize"]
+        overlap_frac = params["overlap"]
 
         xvals = data["x"]
         yvals = data["y"]
@@ -307,8 +305,9 @@ class TiledGridFit:
                 # We'll copy data so we can pass smaller node sets
                 # and no further tiling in the subcall
                 subdata = data.copy()
-                subdata["tilesize"] = float("inf")
-                subdata["overlap"] = 0.0
+                subparams = params.copy()
+                subparams["tilesize"] = float("inf")
+                subparams["overlap"] = 0.0
 
                 x_min_tile = xnodes[xtind[0]]
                 x_max_tile = xnodes[xtind[-1]]
@@ -332,17 +331,16 @@ class TiledGridFit:
                         zvals[k],
                         xnodes[xtind],
                         ynodes[ytind],
-                        smoothness=subdata["smoothness"],
-                        extend=subdata["extend"],
-                        interp=subdata["interp"],
-                        regularizer=subdata["regularizer"],
-                        solver=subdata["solver"],
-                        maxiter=subdata["maxiter"],
+                        smoothness=subparams["smoothness"],
+                        extend=subparams["extend"],
+                        interp=subparams["interp"],
+                        regularizer=subparams["regularizer"],
+                        solver=subparams["solver"],
+                        maxiter=subparams["maxiter"],
                         autoscale="off",
                         xscale=subdata["xscale"],
                         yscale=subdata["yscale"],
-                    )
-                    gf.fit()
+                    ).fit()
 
                     # Bilinear blending via outer product
                     interp_coef = np.outer(yinterp, xinterp)
@@ -391,3 +389,5 @@ class TiledGridFit:
         xg, yg = np.meshgrid(xnodes, ynodes, indexing="xy")
         self.xgrid = xg
         self.ygrid = yg
+
+        return self

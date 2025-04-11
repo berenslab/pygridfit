@@ -153,7 +153,9 @@ def validate_inputs(
     interp: str,
     regularizer: str,
     solver: str,
-) -> Dict[str, Any]:
+    tilesize: Optional[float] = None,
+    overlap: Optional[float] = None,
+) -> tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Preprocess and validate inputs in a style similar to the beginning of gridfit.m.
     Returns a dictionary of 'prepared' data needed by the solver or next step.
@@ -195,6 +197,11 @@ def validate_inputs(
           "ind", "indx", "indy", "tx", "ty", ...
         }
     """
+
+    # First, standardize and validate parameters using check_params()
+    smoothness, extend, interp, regularizer, solver, tilesize, overlap = check_params(
+        smoothness, extend, interp, regularizer, solver, tilesize, overlap
+    )
 
     # Convert x, y, z to flat numpy arrays
     x = np.asarray(x, dtype=float).ravel()
@@ -311,8 +318,20 @@ def validate_inputs(
     tx = np.clip((x - xnodes_arr[indx - 1]) / dx[indx - 1], 0, 1)
     ty = np.clip((y - ynodes_arr[indy - 1]) / dy[indy - 1], 0, 1)
 
-    # Just return everything. 
-    return {
+
+    params = {
+        "smoothness": smoothness,
+        "maxiter": maxiter,
+        "extend": extend,
+        "autoscale": autoscale,
+        "interp": interp,
+        "regularizer": regularizer,
+        "solver": solver,
+        "tilesize": tilesize,
+        "overlap": overlap,
+    }
+
+    data = {
         "x": x,
         "y": y,
         "z": z,
@@ -327,18 +346,11 @@ def validate_inputs(
         "xmax": xmax,
         "ymin": ymin,
         "ymax": ymax,
-        "smoothness": smoothness,
-        "maxiter": maxiter,
-        "extend": extend,
-        "autoscale": autoscale,
-        "xscale": xscale,
-        "yscale": yscale,
-        "interp": interp,
-        "regularizer": regularizer,
-        "solver": solver,
         "ind": ind,
-        "indx": indx,
-        "indy": indy,
         "tx": tx,
         "ty": ty,
+        "xscale": xscale,
+        "yscale": yscale,
     }
+    
+    return params, data

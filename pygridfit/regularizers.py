@@ -173,9 +173,9 @@ def _build_gradient_reg(
 
     # optionally remove all‐zero rows
     # this differs from MATLAB version, but is more efficient
-    # row_sums = abs(Areg).sum(axis=1).A.ravel()
-    # keep = (row_sums != 0)
-    # Areg = Areg[keep]
+    row_sums = abs(Areg).sum(axis=1).A.ravel()
+    keep = (row_sums != 0)
+    Areg = Areg[keep]
 
     return Areg
 

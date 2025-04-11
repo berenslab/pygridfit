@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import scipy.sparse
@@ -9,6 +9,7 @@ def solve_system(
     A: scipy.sparse.spmatrix,
     Areg: scipy.sparse.spmatrix,
     data: Dict[str, Any],
+    smoothness: Union[float, np.ndarray] = 1.0,
     solver: str = "normal",
     maxiter: Optional[int] = None,
     tol: Optional[float] = None
@@ -30,7 +31,8 @@ def solve_system(
           - 'ynodes' (np.ndarray): Y-coordinates on the grid
           - 'nx' (int): Number of grid points in X direction
           - 'ny' (int): Number of grid points in Y direction
-          - 'smoothness' (Union[float, np.ndarray]): Smoothing parameter
+    smoothness : float or np.ndarray, optional
+          - Smoothing parameter. Default is 1.0.
     solver : {'normal', 'lsqr'}, optional
         Which solver to use. 'normal' solves normal equations (A^T A)x = A^T b;
         'lsqr' calls scipy.sparse.linalg.lsqr for an iterative least-squares solver.
@@ -55,10 +57,10 @@ def solve_system(
     nx, ny = data["nx"], data["ny"]
 
     # figure out smoothing parameter
-    if np.isscalar(data["smoothness"]):
-        smoothparam = float(data["smoothness"])
+    if np.isscalar(smoothness):
+        smoothparam = float(smoothness)
     else:
-        arr = np.asarray(data["smoothness"], dtype=float)
+        arr = np.asarray(smoothness, dtype=float)
         smoothparam = np.sqrt(np.prod(arr))
 
     # compute NA, NR

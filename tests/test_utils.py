@@ -42,6 +42,7 @@ def test_check_params_happy_path():
     assert final_solver == "normal"     # '\\' -> 'backslash'
     assert final_tilesize == 100
     assert final_overlap == 0.3
+    
 
 def test_check_params_smoothness_scalar():
     """
@@ -143,7 +144,7 @@ def test_validate_inputs_happy_path():
     y[10] = np.nan
     z[20] = np.nan
 
-    result = validate_inputs(
+    params, data = validate_inputs(
         x, y, z,
         xnodes=5, ynodes=5,
         smoothness=1.5,
@@ -158,20 +159,20 @@ def test_validate_inputs_happy_path():
     )
     # Check that the 3 nans were removed
     # => final length is 47
-    assert len(result["x"]) == 47
-    assert len(result["y"]) == 47
-    assert len(result["z"]) == 47
+    assert len(data["x"]) == 47
+    assert len(data["y"]) == 47
+    assert len(data["z"]) == 47
 
-    assert result["nx"] == 5
-    assert result["ny"] == 5
-    assert result["ngrid"] == 25
+    assert data["nx"] == 5
+    assert data["ny"] == 5
+    assert data["ngrid"] == 25
     # autoscale => xscale, yscale are set to average spacing
-    assert result["autoscale"] == "off"
-    assert result["xscale"] == pytest.approx( (result["xnodes"][1:] - result["xnodes"][:-1]).mean() )
-    assert result["yscale"] == pytest.approx( (result["ynodes"][1:] - result["ynodes"][:-1]).mean() )
+    assert params["autoscale"] == "off"
+    assert data["xscale"] == pytest.approx( (data["xnodes"][1:] - data["xnodes"][:-1]).mean() )
+    assert data["yscale"] == pytest.approx( (data["ynodes"][1:] - data["ynodes"][:-1]).mean() )
 
     # Check maxiter => default = min(10000, ngrid)
-    assert result["maxiter"] == 25
+    assert params["maxiter"] == 25
 
 def test_validate_inputs_arrays_xnodes_ynodes():
     """
@@ -183,7 +184,7 @@ def test_validate_inputs_arrays_xnodes_ynodes():
     xnodes = np.array([0.0, 2.5, 5.0])
     ynodes = np.array([1.0, 5.5, 11.0])
 
-    result = validate_inputs(
+    params, data = validate_inputs(
         x, y, z,
         xnodes=xnodes,
         ynodes=ynodes,
@@ -204,16 +205,16 @@ def test_validate_inputs_arrays_xnodes_ynodes():
     # max=10 => node_array[-1]=11 => no extension needed
 
     # So we expect no changes. Let's verify
-    assert np.allclose(result["xnodes"], xnodes)
-    assert np.allclose(result["ynodes"], ynodes)
-    assert result["dx"] == pytest.approx([2.5, 2.5])
-    assert result["dy"] == pytest.approx([4.5, 5.5])
-    assert result["nx"] == 3
-    assert result["ny"] == 3
-    assert result["ngrid"] == 9
-    assert result["maxiter"] == 10
-    assert result["autoscale"] == "off"
-    assert result["xscale"] == 1.0
+    assert np.allclose(data["xnodes"], xnodes)
+    assert np.allclose(data["ynodes"], ynodes)
+    assert data["dx"] == pytest.approx([2.5, 2.5])
+    assert data["dy"] == pytest.approx([4.5, 5.5])
+    assert data["nx"] == 3
+    assert data["ny"] == 3
+    assert data["ngrid"] == 9
+    assert params["maxiter"] == 10
+    assert params["autoscale"] == "off"
+    assert data["xscale"] == 1.0
 
 def test_validate_inputs_bad_nodes():
     """

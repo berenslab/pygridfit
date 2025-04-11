@@ -4,8 +4,6 @@ import scipy.io
 from pygridfit import GridFit
 
 # Test against results from MATALB
-# input = scipy.io.loadmat("./tests/data/input.mat")
-# output = scipy.io.loadmat("./tests/data/output.mat")
 bluff_data = scipy.io.loadmat("./tests/data/bluff_data.mat")
 
 
