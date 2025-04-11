@@ -2,8 +2,14 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import scipy.sparse
-from scipy.sparse.linalg import lsqr
-from sksparse.cholmod import cholesky
+from scipy.sparse.linalg import lsqr, spsolve
+
+try:
+    from sksparse.cholmod import cholesky
+    HAS_CHOLMOD = True
+except ImportError:
+    HAS_CHOLMOD = False
+    print("[Info] scikit-sparse not found. Falling back to scipy.sparse.linalg.spsolve.")
 
 
 def solve_system(
@@ -78,7 +84,10 @@ def solve_system(
         # solve normal equations: (A^T A) x = A^T b
         lhs = A_combined.T @ A_combined
         rhs = A_combined.T @ rhs_combined
-        zgrid_flat = cholesky(lhs)(rhs)
+        if HAS_CHOLMOD:
+            zgrid_flat = cholesky(lhs)(rhs)
+        else:
+            zgrid_flat = spsolve(lhs, rhs)
 
     elif solver == 'lsqr':
         # Directly solve A_combined x = rhs_combined with lsqr
