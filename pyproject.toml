@@ -13,6 +13,7 @@ dependencies = [
     "numpy>=2.0.2",
     "pytest>=8.3.5",
     "scikit-learn>=1.6.1",
+    "scikit-sparse>=0.4.15",
     "scipy>=1.13.1",
     "watermark>=2.5.0",
 ]

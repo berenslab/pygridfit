@@ -2,7 +2,8 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import scipy.sparse
-from scipy.sparse.linalg import lsqr, spsolve
+from scipy.sparse.linalg import lsqr
+from sksparse.cholmod import cholesky
 
 
 def solve_system(
@@ -77,7 +78,7 @@ def solve_system(
         # solve normal equations: (A^T A) x = A^T b
         lhs = A_combined.T @ A_combined
         rhs = A_combined.T @ rhs_combined
-        zgrid_flat = spsolve(lhs, rhs)
+        zgrid_flat = cholesky(lhs)(rhs)
 
     elif solver == 'lsqr':
         # Directly solve A_combined x = rhs_combined with lsqr
