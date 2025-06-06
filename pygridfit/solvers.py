@@ -1,4 +1,5 @@
-from typing import Any, Dict, Optional, Tuple, Union
+"""pygridfit/solvers.py"""
+from typing import Any, Dict, Tuple
 
 import numpy as np
 import scipy.sparse
@@ -16,10 +17,10 @@ def solve_system(
     A: scipy.sparse.spmatrix,
     Areg: scipy.sparse.spmatrix,
     data: Dict[str, Any],
-    smoothness: Union[float, np.ndarray] = 1.0,
+    smoothness: float | np.ndarray = 1.0,
     solver: str = "normal",
-    maxiter: Optional[int] = None,
-    tol: Optional[float] = None
+    maxiter: int | None = None,
+    tol: float | None = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Combine A and Areg with the chosen smoothing, then solve the system

@@ -1,7 +1,8 @@
+"""pygridfit/regularizers.py"""
 from typing import Any, Dict, Union
 
 import numpy as np
-from scipy.sparse import coo_matrix, csr_matrix, vstack
+from scipy.sparse import csr_matrix, vstack
 
 
 def build_regularizer_matrix(
@@ -124,7 +125,7 @@ def _build_gradient_reg(
     ]).ravel() - 1  # 0-based
     data_y = cvals_y.ravel()
 
-    y_grad_coo = coo_matrix((data_y, (row_y-1, col_y)), shape=(ngrid, ngrid))
+    y_grad_csr = csr_matrix((data_y, (row_y-1, col_y)), shape=(ngrid, ngrid))
     # NB: row_y-1 as well, so row indices are 0-based.
 
     # ---------------------------
@@ -164,12 +165,12 @@ def _build_gradient_reg(
     ]).ravel() - 1
     data_x = cvals_x.ravel()
 
-    x_grad_coo = coo_matrix((data_x, (row_x-1, col_x)), shape=(ngrid, ngrid))
+    x_grad_csr = csr_matrix((data_x, (row_x-1, col_x)), shape=(ngrid, ngrid))
 
     # ---------------------------
     # 3) Stack them
     # ---------------------------
-    Areg = vstack([y_grad_coo, x_grad_coo]).tocsr()
+    Areg = vstack([y_grad_csr, x_grad_csr]).tocsr()
 
     # optionally remove all‐zero rows
     # this differs from MATLAB version, but is more efficient
@@ -248,7 +249,7 @@ def _build_diffusion_reg(
     col_y = np.column_stack([ind_y - 1, ind_y, ind_y + 1]).ravel() - 1
     data_y = cvals_y.ravel()
 
-    Areg_y = coo_matrix((data_y, (row_y - 1, col_y)), shape=(ngrid, ngrid))
+    Areg_y = csr_matrix((data_y, (row_y - 1, col_y)), shape=(ngrid, ngrid))
 
     # ------------------------------------------------
     # x-direction Laplacian part
@@ -274,11 +275,10 @@ def _build_diffusion_reg(
     col_x = np.column_stack([ind_x - ny, ind_x, ind_x + ny]).ravel() - 1
     data_x = cvals_x.ravel()
 
-    Areg_x = coo_matrix((data_x, (row_x - 1, col_x)), shape=(ngrid, ngrid))
+    Areg_x = csr_matrix((data_x, (row_x - 1, col_x)), shape=(ngrid, ngrid))
 
     # Combine
-    Areg = Areg_y + Areg_x  # sum of two coo_matrix => coo_matrix
-    Areg = Areg.tocsr()
+    Areg = Areg_y + Areg_x  # sum of two csr_matrix => csr_matrix
 
     return Areg
 
@@ -340,7 +340,7 @@ def _build_springs_reg(
     row = np.repeat(np.arange(m), 2)
     col = np.column_stack([ind.ravel(), ind.ravel() + 1]).ravel() - 1
     data_vals = vals.ravel()
-    Areg1 = coo_matrix((data_vals, (row, col)), shape=(m, ngrid))
+    Areg1 = csr_matrix((data_vals, (row, col)), shape=(m, ngrid))
     springs.append(Areg1)
 
     # -----------------------------------------
@@ -360,7 +360,7 @@ def _build_springs_reg(
     row = np.repeat(np.arange(m), 2)
     col = np.column_stack([ind.ravel(), ind.ravel() + ny]).ravel() - 1
     data_vals = vals.ravel()
-    Areg2 = coo_matrix((data_vals, (row, col)), shape=(m, ngrid))
+    Areg2 = csr_matrix((data_vals, (row, col)), shape=(m, ngrid))
     springs.append(Areg2)
 
     # -----------------------------------------
@@ -382,7 +382,7 @@ def _build_springs_reg(
     row = np.repeat(np.arange(m), 2)
     col = np.column_stack([ind.ravel(), ind.ravel() + ny + 1]).ravel() - 1
     data_vals = vals.ravel()
-    Areg3 = coo_matrix((data_vals, (row, col)), shape=(m, ngrid))
+    Areg3 = csr_matrix((data_vals, (row, col)), shape=(m, ngrid))
     springs.append(Areg3)
 
     # -----------------------------------------
@@ -394,9 +394,9 @@ def _build_springs_reg(
     row = np.repeat(np.arange(m), 2)
     col = col.ravel() - 1
     data_vals = vals.ravel()
-    Areg4 = coo_matrix((data_vals, (row, col)), shape=(m, ngrid))
+    Areg4 = csr_matrix((data_vals, (row, col)), shape=(m, ngrid))
     springs.append(Areg4)
 
-    Areg = vstack(springs).tocsr()
+    Areg = vstack(springs)
 
-    return Areg
+    return csr_matrix(Areg)

@@ -1,5 +1,4 @@
-from typing import Optional, Union
-
+"""pygridfit/gridfit.py"""
 import numpy as np
 
 from . import interpolation, regularizers, solvers, utils
@@ -36,14 +35,14 @@ class GridFit:
         x: np.ndarray,
         y: np.ndarray,
         z: np.ndarray,
-        xnodes: Union[np.ndarray, int],
-        ynodes: Union[np.ndarray, int],
-        smoothness: Union[float, np.ndarray] = 1.,
+        xnodes: np.ndarray |int,
+        ynodes: np.ndarray | int,
+        smoothness: float | np.ndarray = 1.,
         extend: str = "warning",
         interp: str = "triangle",
         regularizer: str = "gradient",
         solver: str = "normal",
-        maxiter: Optional[int] = None,
+        maxiter: int | None = None,
         autoscale: str = "on",
         xscale: float = 1.0,
         yscale: float = 1.0,
@@ -102,9 +101,9 @@ class GridFit:
             solver=solver,
         )
 
-        self.zgrid: Optional[np.ndarray] = None
-        self.xgrid: Optional[np.ndarray] = None
-        self.ygrid: Optional[np.ndarray] = None
+        self.zgrid: np.ndarray | None = None
+        self.xgrid: np.ndarray | None = None
+        self.ygrid: np.ndarray | None = None
 
     def fit(self)->"GridFit":
         """
@@ -154,14 +153,14 @@ class TiledGridFit:
         x: np.ndarray,
         y: np.ndarray,
         z: np.ndarray,
-        xnodes: Union[np.ndarray, int],
-        ynodes: Union[np.ndarray, int],
-        smoothness: Union[float, np.ndarray] = 1.0,
+        xnodes: np.ndarray | int,
+        ynodes: np.ndarray | int,
+        smoothness: float | np.ndarray = 1.0,
         extend: str = "warning",
         interp: str = "triangle",
         regularizer: str = "gradient",
         solver: str = "normal",
-        maxiter: Optional[int] = None,
+        maxiter: int | None = None,
         autoscale: str = "on",
         xscale: float = 1.0,
         yscale: float = 1.0,
@@ -234,9 +233,9 @@ class TiledGridFit:
         )
 
         # Final outputs after calling fit()
-        self.zgrid: Optional[np.ndarray] = None
-        self.xgrid: Optional[np.ndarray] = None
-        self.ygrid: Optional[np.ndarray] = None
+        self.zgrid: np.ndarray | None = None
+        self.xgrid: np.ndarray | None = None
+        self.ygrid: np.ndarray | None = None
 
     def fit(self) -> "TiledGridFit":
         """

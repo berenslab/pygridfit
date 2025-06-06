@@ -1,4 +1,5 @@
-from typing import Any, Dict, Optional, Union, cast
+"""pygridfit/utils.py"""
+from typing import Any, Dict, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -35,14 +36,14 @@ def _resolve_abbrev(value: str, valid_options: list[str], fieldname: str) -> str
 
 
 def check_params(
-    smoothness: Union[float, list[float], NDArray[np.float64], None],
+    smoothness: float | list[float] | NDArray[np.float64] | None,
     extend: str,
     interp: str,
     regularizer: str,
     solver: str,
-    tilesize: Optional[float] = None,
-    overlap: Optional[float] = None,
-) -> tuple[Union[NDArray[np.float64], float], str, str, str, str, float, float]:
+    tilesize: float | None = None,
+    overlap: float | None = None,
+) -> tuple[NDArray[np.float64] | float, str, str, str, str, float, float]:
     """
     Validate and standardize the gridfit parameters, mimicking the MATLAB check_params logic.
 
@@ -139,13 +140,13 @@ def check_params(
   
 
 def validate_inputs(
-    x: Union[NDArray[np.float64], list[float]],
-    y: Union[NDArray[np.float64], list[float]],
-    z: Union[NDArray[np.float64], list[float]],
-    xnodes: Union[NDArray[np.float64], int],
-    ynodes: Union[NDArray[np.float64], int],
-    smoothness: Union[float, NDArray[np.float64]],
-    maxiter: Optional[int],
+    x: NDArray[np.float64] | list[float],
+    y: NDArray[np.float64] | list[float],
+    z: NDArray[np.float64] | list[float],
+    xnodes: NDArray[np.float64] | int,
+    ynodes: NDArray[np.float64] | int,
+    smoothness: float | NDArray[np.float64],
+    maxiter: int | None,
     extend: str,
     autoscale: str,
     xscale: float,
@@ -153,8 +154,8 @@ def validate_inputs(
     interp: str,
     regularizer: str,
     solver: str,
-    tilesize: Optional[float] = None,
-    overlap: Optional[float] = None,
+    tilesize: float | None = None,
+    overlap: float | None = None,
 ) -> tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Preprocess and validate inputs in a style similar to the beginning of gridfit.m.

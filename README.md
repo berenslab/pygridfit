@@ -1,6 +1,6 @@
 # pygridfit
 
-Python port of the MATLAB [gridfit](https://www.mathworks.com/matlabcentral/fileexchange/8998-surface-fitting-using-gridfit) function (D'Errico, 2006). Work in progress.
+Python port of the MATLAB [gridfit](https://www.mathworks.com/matlabcentral/fileexchange/8998-surface-fitting-using-gridfit) function (D'Errico, 2006). 
 
 
 ## Installation

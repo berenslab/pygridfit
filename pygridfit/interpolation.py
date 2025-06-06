@@ -1,8 +1,8 @@
+"""pygridfit/interpolation.py"""
 from typing import Any, Dict
 
 import numpy as np
-import scipy.sparse
-from scipy.sparse import coo_matrix, csr_matrix
+from scipy.sparse import csr_matrix
 
 
 def build_interpolation_matrix(data: Dict[str, Any], method: str) -> csr_matrix:
@@ -85,8 +85,8 @@ def _build_triangle_matrix(data: Dict[str, Any]) -> csr_matrix:
     row_indices = row_indices[mask]
     col_indices = col_indices[mask]
 
-    A_coo = coo_matrix((vals, (row_indices, col_indices)), shape=(n, ngrid))
-    return A_coo.tocsr()
+    A_csr = csr_matrix((vals, (row_indices, col_indices)), shape=(n, ngrid))
+    return A_csr
 
 def _build_nearest_matrix(data: Dict[str, Any]) -> csr_matrix:
     """
@@ -110,7 +110,7 @@ def _build_nearest_matrix(data: Dict[str, Any]) -> csr_matrix:
     
     Returns
     -------
-    A_coo.tocsr() : csr_matrix
+    A_csr : csr_matrix
         The sparse nearest-neighbor interpolation matrix of shape (n, ngrid).
     """
 
@@ -134,9 +134,9 @@ def _build_nearest_matrix(data: Dict[str, Any]) -> csr_matrix:
     # The interpolation weight is always 1 for nearest neighbor
     vals = np.ones(n, dtype=float)
 
-    # Build the sparse matrix in COO, then convert to CSR
-    A_coo = coo_matrix((vals, (rows, col_indices)), shape=(n, ngrid))
-    return A_coo.tocsr()
+    # Build the sparse matrix in CSR
+    A_csr = csr_matrix((vals, (rows, col_indices)), shape=(n, ngrid))
+    return A_csr
 
 
 def _build_bilinear_matrix(data: Dict[str, Any]) -> csr_matrix:
@@ -162,7 +162,7 @@ def _build_bilinear_matrix(data: Dict[str, Any]) -> csr_matrix:
     
     Returns
     -------
-    A_coo.tocsr() : csr_matrix
+    A_csr : csr_matrix
         The bilinear interpolation matrix of shape (n, ngrid).
     """
     
@@ -199,5 +199,5 @@ def _build_bilinear_matrix(data: Dict[str, Any]) -> csr_matrix:
     row_indices = row_indices[mask]
     col_indices = col_indices[mask]
 
-    A_coo = coo_matrix((corner_vals, (row_indices, col_indices)), shape=(n, ngrid))
-    return A_coo.tocsr()
+    A_csr = csr_matrix((corner_vals, (row_indices, col_indices)), shape=(n, ngrid))
+    return A_csr
