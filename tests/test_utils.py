@@ -128,6 +128,11 @@ def test_check_params_overlap_out_of_bounds(bad_overlap):
         check_params(1.0, "never", "triangle", "gradient", "normal", 100, bad_overlap)
 
 
+def test_check_params_solver_symmlq_not_supported():
+    with pytest.raises(ValueError, match="Invalid solver option: symmlq"):
+        check_params(1.0, "never", "triangle", "gradient", "symmlq")
+
+
 # -----------------------------------------------------------------------------------
 #                         validate_inputs tests
 # -----------------------------------------------------------------------------------
@@ -215,6 +220,32 @@ def test_validate_inputs_arrays_xnodes_ynodes():
     assert params["maxiter"] == 10
     assert params["autoscale"] == "off"
     assert data["xscale"] == 1.0
+
+
+def test_validate_inputs_extends_nodes_when_requested():
+    x = np.array([-0.4, 0.2, 0.8])
+    y = np.array([0.2, 0.7, 1.2])
+    z = np.array([1.0, 2.0, 3.0])
+    xnodes = np.array([0.0, 0.5, 1.0])
+    ynodes = np.array([0.0, 0.5, 1.0])
+
+    _, data = validate_inputs(
+        x, y, z,
+        xnodes=xnodes,
+        ynodes=ynodes,
+        smoothness=1.0,
+        maxiter=None,
+        extend="always",
+        autoscale="off",
+        xscale=1.0,
+        yscale=1.0,
+        interp="triangle",
+        regularizer="gradient",
+        solver="normal",
+    )
+
+    assert data["xnodes"][0] == pytest.approx(-0.4)
+    assert data["ynodes"][-1] == pytest.approx(1.2)
 
 def test_validate_inputs_bad_nodes():
     """
