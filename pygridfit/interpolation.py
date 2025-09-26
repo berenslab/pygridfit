@@ -121,11 +121,10 @@ def _build_nearest_matrix(data: Dict[str, Any]) -> csr_matrix:
     ind = data["ind"]  # 1-based cell index from validate_inputs
     rows = np.arange(n)
 
-    # Replicate the MATLAB formula: k = round(1-ty) + round(1-tx)*ny;
-    # Each data point contributes to exactly 1 corner in the cell.
-    k = np.round(1 - ty) + np.round(1 - tx)*ny
-    # k is float array, so cast to int
-    k = k.astype(int)
+    # Replicate MATLAB's round-half-away-from-zero behaviour so ties are
+    # resolved consistently with the original implementation.
+    k = np.floor(1 - ty + 0.5).astype(int)
+    k += np.floor(1 - tx + 0.5).astype(int) * ny
 
     # col_indices in MATLAB is (ind + k),
     # but we must shift by -1 for Python's 0-based indexing

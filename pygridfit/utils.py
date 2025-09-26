@@ -58,7 +58,7 @@ def check_params(
     regularizer : str
         Regularizer type. One of ["springs","diffusion","laplacian","gradient"].
     solver : str
-        Solver type. One of ["symmlq","lsqr","normal"].
+        Solver type. One of ["lsqr", "normal"].
     tilesize : float, optional
         Size of each tile if using tiling, otherwise inf to disable tiling.
     overlap : float, optional
@@ -113,9 +113,9 @@ def check_params(
 
     # ----------------------------------------------------------------
     # 5) Validate solver
-    #    (MATLAB: 'symmlq','lsqr','normal')
+    #    (Python port implements 'lsqr' and 'normal')
     # ----------------------------------------------------------------
-    valid_solver = ["symmlq", "lsqr", "normal"]
+    valid_solver = ["lsqr", "normal"]
     solver = _resolve_abbrev(solver, valid_solver, "solver")
 
     # ----------------------------------------------------------------
@@ -183,7 +183,7 @@ def validate_inputs(
     regularizer : str
         The method for building a regularizer, e.g. 'diffusion','gradient','springs'.
     solver : str
-        One of 'symmlq','lsqr','normal'.
+        One of 'lsqr','normal'.
 
     Returns
     -------
@@ -298,10 +298,10 @@ def validate_inputs(
                     )
 
     # Possibly extend boundaries
-    maybe_extend(xmin, xnodes_arr.astype(np.float64), "start", "x")
-    maybe_extend(xmax, xnodes_arr.astype(np.float64), "end", "x")
-    maybe_extend(ymin, ynodes_arr.astype(np.float64), "start", "y")
-    maybe_extend(ymax, ynodes_arr.astype(np.float64), "end", "y")
+    maybe_extend(xmin, xnodes_arr, "start", "x")
+    maybe_extend(xmax, xnodes_arr, "end", "x")
+    maybe_extend(ymin, ynodes_arr, "start", "y")
+    maybe_extend(ymax, ynodes_arr, "end", "y")
 
     # Recompute dx, dy because we may have changed xnodes/ynodes
     dx = np.diff(xnodes_arr)

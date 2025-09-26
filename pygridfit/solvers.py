@@ -71,10 +71,14 @@ def solve_system(
         arr = np.asarray(smoothness, dtype=float)
         smoothparam = np.sqrt(np.prod(arr))
 
-    # compute NA, NR
-    NA = np.abs(A).sum(axis=0).max()
-    NR = np.abs(Areg).sum(axis=0).max()
-    lam = smoothparam * NA / NR
+    # compute NA, NR (convert from numpy.matrix to plain float scalars)
+    NA = float(np.asarray(np.abs(A).sum(axis=0)).max())
+    NR = float(np.asarray(np.abs(Areg).sum(axis=0)).max())
+
+    if NR == 0.0 or not np.isfinite(NR) or NA == 0.0 or not np.isfinite(NA):
+        lam = 0.0
+    else:
+        lam = smoothparam * NA / NR
 
     # combine
     nreg = Areg.shape[0]
@@ -107,8 +111,9 @@ def solve_system(
             print("[lsqr warning] Scalar quantities in LSQR got too large or small.")
 
     else:
-        raise ValueError(f"Unknown solver '{solver}'. Choose from "
-                         "['normal','lsqr']")
+        raise ValueError(
+            f"Unknown solver '{solver}'. Choose from ['normal','lsqr']."
+        )
 
     zgrid = zgrid_flat.reshape(ny, nx, order="F") # To be consistent with MATLAB
     xgrid, ygrid = np.meshgrid(xnodes, ynodes, indexing="xy")

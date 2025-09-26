@@ -67,7 +67,7 @@ class GridFit:
             Interpolation scheme used to build the interpolation matrix A.
         regularizer : {"gradient", "diffusion", "springs"}, default="gradient"
             Type of regularization to impose (e.g., gradient penalty or diffusion).
-        solver : {"normal", "lsqr", "symmlq"}, default="normal"
+        solver : {"normal", "lsqr"}, default="normal"
             Solver choice for the final least-squares system.
         maxiter : int, optional
             Iteration limit for iterative solvers. If None, a default is chosen.
@@ -184,7 +184,7 @@ class TiledGridFit:
             Interpolation method for building A.
         regularizer : {"gradient","diffusion","springs"}, default="gradient"
             Regularization strategy.
-        solver : {"normal","lsqr","symmlq"}, default="normal"
+        solver : {"normal","lsqr"}, default="normal"
             Solver approach for the final least-squares system.
         maxiter : int, optional
             Iteration limit if solver is iterative.
@@ -250,18 +250,29 @@ class TiledGridFit:
         xnodes = data["xnodes"]
         ynodes = data["ynodes"]
         nx, ny = data["nx"], data["ny"]
-        tilesize = params["tilesize"]
+        tilesize_param = params["tilesize"]
         overlap_frac = params["overlap"]
+
+        if np.isfinite(tilesize_param):
+            tile_span = max(int(np.ceil(tilesize_param)), 1)
+        else:
+            tile_span = max(nx, ny)
+
+        if not np.isfinite(tilesize_param) or overlap_frac <= 0:
+            overlap_pts = 0
+        else:
+            raw_overlap = int(np.floor(tile_span * overlap_frac))
+            raw_overlap = max(2, raw_overlap)
+            overlap_pts = min(raw_overlap, tile_span - 1)
+
+        tile_step = max(tile_span - overlap_pts, 1)
 
         xvals = data["x"]
         yvals = data["y"]
         zvals = data["z"]
 
-        # Overlap in actual grid points
-        overlap_pts = max(2, int(np.floor(tilesize * overlap_frac)))
-
-        # Prepare a big array for the final surface
-        zgrid_full = np.zeros((ny, nx), dtype=float)
+        z_accum = np.zeros((ny, nx), dtype=float)
+        weight_accum = np.zeros((ny, nx), dtype=float)
 
         # Helper to create a linear ramp from node[0]..node[-1]
         # (like MATLAB's rampfun(t) = (t - t(1)) / (t(end) - t(1)) )
@@ -271,31 +282,31 @@ class TiledGridFit:
             return (t - t[0]) / (t[-1] - t[0])
 
         # Mirror the MATLAB approach to tile stepping in x
-        # Start with xtind in range(0..min(nx, tilesize))
+        # Start with xtind in range(0..min(nx, tile_span))
         # We'll do 0-based indexing in Python
-        xtind = np.arange(0, min(nx, tilesize))
+        xtind = np.arange(0, min(nx, tile_span))
         while xtind.size > 0 and xtind[0] < nx:
             # Build x-ramp
             xinterp = np.ones(len(xtind), dtype=float)
-            if xtind[0] > 0:
+            if overlap_pts > 0 and xtind[0] > 0:
                 # left overlap
                 left_slice = slice(0, overlap_pts)
                 xinterp[left_slice] = rampfun(xnodes[xtind[left_slice]])
-            if xtind[-1] < nx - 1:
+            if overlap_pts > 0 and xtind[-1] < nx - 1:
                 # right overlap
                 right_slice = slice(len(xtind) - overlap_pts, len(xtind))
                 xinterp[right_slice] = 1.0 - rampfun(xnodes[xtind[right_slice]])
 
             # Now tile stepping in y
-            ytind = np.arange(0, min(ny, tilesize))
+            ytind = np.arange(0, min(ny, tile_span))
             while ytind.size > 0 and ytind[0] < ny:
                 # Build y-ramp
                 yinterp = np.ones(len(ytind), dtype=float)
-                if ytind[0] > 0:
+                if overlap_pts > 0 and ytind[0] > 0:
                     # top overlap
                     top_slice = slice(0, overlap_pts)
                     yinterp[top_slice] = rampfun(ynodes[ytind[top_slice]])
-                if ytind[-1] < ny - 1:
+                if overlap_pts > 0 and ytind[-1] < ny - 1:
                     # bottom overlap
                     bot_slice = slice(len(ytind) - overlap_pts, len(ytind))
                     yinterp[bot_slice] = 1.0 - rampfun(ynodes[ytind[bot_slice]])
@@ -321,7 +332,7 @@ class TiledGridFit:
 
                 if len(k) < 4:
                     # Not enough data
-                    zgrid_full[np.ix_(ytind, xtind)] = np.nan
+                    pass
                 else:
                     # Fit subgrid
                     gf = GridFit(
@@ -343,17 +354,18 @@ class TiledGridFit:
 
                     # Bilinear blending via outer product
                     interp_coef = np.outer(yinterp, xinterp)
-                    zgrid_full[np.ix_(ytind, xtind)] += gf.zgrid * interp_coef
+                    z_accum[np.ix_(ytind, xtind)] += gf.zgrid * interp_coef
+                    weight_accum[np.ix_(ytind, xtind)] += interp_coef
 
                 # Move to next tile in y
                 if ytind[-1] >= ny - 1:
                     # we've reached the boundary
                     ytind = np.array([])  # exit loop
                 else:
-                    # shift start by (tilesize - overlap_pts)
-                    new_start_y = ytind[0] + tilesize - overlap_pts
+                    # shift start by tile_step
+                    new_start_y = ytind[0] + tile_step
                     # tentative end
-                    new_end_y = new_start_y + tilesize
+                    new_end_y = new_start_y + tile_span
                     if new_start_y >= ny:
                         ytind = np.array([])  # done
                     else:
@@ -370,8 +382,8 @@ class TiledGridFit:
                 # boundary reached
                 xtind = np.array([])
             else:
-                new_start_x = xtind[0] + tilesize - overlap_pts
-                new_end_x = new_start_x + tilesize
+                new_start_x = xtind[0] + tile_step
+                new_end_x = new_start_x + tile_span
                 if new_start_x >= nx:
                     xtind = np.array([])  # done
                 else:
@@ -382,8 +394,11 @@ class TiledGridFit:
                             next_xtind = np.arange(next_xtind[0], nx)
                     xtind = next_xtind
 
-        # Store final result
-        self.zgrid = zgrid_full
+        result = np.full_like(z_accum, np.nan, dtype=float)
+        mask = weight_accum > 0
+        result[mask] = z_accum[mask] / weight_accum[mask]
+
+        self.zgrid = result
         # Also define xgrid, ygrid
         xg, yg = np.meshgrid(xnodes, ynodes, indexing="xy")
         self.xgrid = xg
