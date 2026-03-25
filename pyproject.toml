@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pygridfit"
-version = "0.1.6"
+version = "0.1.7"
 description = "Python Port of gridfit (John D'Errico, 2006)"
 authors = []
 requires-python = ">=3.10.0"
@@ -25,7 +25,7 @@ dev = [
     "maturin",
 ]
 scikit-sparse = [
-    "scikit-sparse>=0.4.15",
+    "scikit-sparse>=0.5.0",
 ]
 
 [tool.setuptools]

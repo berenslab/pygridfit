@@ -6,7 +6,7 @@ import scipy.sparse
 from scipy.sparse.linalg import lsqr, spsolve
 
 try:
-    from sksparse.cholmod import cholesky
+    from sksparse.cholmod import cho_factor
     HAS_CHOLMOD = True
 except ImportError:
     HAS_CHOLMOD = False
@@ -90,7 +90,7 @@ def solve_system(
         lhs = A_combined.T @ A_combined
         rhs = A_combined.T @ rhs_combined
         if HAS_CHOLMOD:
-            zgrid_flat = cholesky(lhs)(rhs)
+            zgrid_flat = cho_factor(lhs).solve(rhs)
         else:
             zgrid_flat = spsolve(lhs, rhs)
 
