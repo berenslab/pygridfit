@@ -1,7 +1,7 @@
 % generate_synth_references.m
 % Generate reference outputs from the MATLAB/Octave gridfit for comparison
 % with the Python port. Exercises all interp x regularizer x solver combos
-% on a deterministic synthetic trig surface.
+% on a deterministic synthetic surface with realistic scattered data.
 %
 % Requires: gridfit.m on the path (shipped in dev/gridfitdir/).
 %
@@ -13,20 +13,43 @@ regularizers = {'gradient', 'diffusion', 'springs'};
 % Octave lacks lsqr; use 'normal' (matches Python) and 'backslash' (cross-check)
 solvers = {'normal', 'backslash'};
 
-%% Build deterministic scattered data
-% Trig surface: sin(4x+5y)*cos(7(x-y)) + exp(x+y) on [0,1]^2.
-% Sample on a 26x26 meshgrid, keep every 3rd point (226 pts) so the data
-% does not sit exactly on the fitting grid.
-xi = linspace(0, 1, 26);
-[xg, yg] = meshgrid(xi, xi);
-x_all = xg(:);
-y_all = yg(:);
-z_all = sin(4*x_all + 5*y_all) .* cos(7*(x_all - y_all)) + exp(x_all + y_all);
+%% Build deterministic scattered data that mimics real-world properties:
+%  - Irregularly spaced (not on a grid)
+%  - Non-uniform density (clustered in some regions, sparse in others)
+%  - Measurement noise
+%  - Some points near grid boundaries
+%  - Replicates (multiple z values at similar locations)
+rand('seed', 42);
 
-idx = 1:3:length(x_all);
-x_s = x_all(idx);
-y_s = y_all(idx);
-z_s = z_all(idx);
+% Base: 200 irregularly scattered points via randn (clustered near center)
+n1 = 200;
+x1 = 0.5 + 0.25 * randn(n1, 1);
+y1 = 0.5 + 0.25 * randn(n1, 1);
+
+% Additional sparse points in corners (low-density regions)
+n2 = 30;
+corners_x = [0.05*ones(n2/3,1); 0.95*ones(n2/3,1); 0.05*rand(n2/3,1)];
+corners_y = [0.05*rand(n2/3,1);  0.95*rand(n2/3,1); 0.95*ones(n2/3,1)];
+x1 = [x1; corners_x];
+y1 = [y1; corners_y];
+
+% Clip to [0.01, 0.99] so extend='never' works with [0,1] grid
+x1 = min(0.99, max(0.01, x1));
+y1 = min(0.99, max(0.01, y1));
+
+% True surface
+z_true = sin(4*x1 + 5*y1) .* cos(7*(x1 - y1)) + exp(x1 + y1);
+
+% Add measurement noise (small relative to signal range)
+noise = 0.02 * randn(length(x1), 1);
+z1 = z_true + noise;
+
+% Add replicates: duplicate ~20 points with slightly different z
+n_dup = 20;
+idx_dup = 1:n_dup;
+x1 = [x1; x1(idx_dup)];
+y1 = [y1; y1(idx_dup)];
+z1 = [z1; z1(idx_dup) + 0.01*randn(n_dup, 1)];
 
 xnodes = linspace(0, 1, 21);
 ynodes = linspace(0, 1, 21);
@@ -44,7 +67,7 @@ for ii = 1:length(interps)
       key = [interp_name '_' reg_name '_' solver_name];
       fprintf('Running: %s\n', key);
 
-      g = gridfit(x_s, y_s, z_s, xnodes, ynodes, ...
+      g = gridfit(x1, y1, z1, xnodes, ynodes, ...
         'interp', interp_name, ...
         'regularizer', reg_name, ...
         'solver', solver_name, ...
@@ -71,7 +94,7 @@ for ci = 1:size(aniso_combos, 1)
   key = ['aniso_' interp_name '_' reg_name '_' solver_name];
   fprintf('Running: %s\n', key);
 
-  g = gridfit(x_s, y_s, z_s, xnodes, ynodes, ...
+  g = gridfit(x1, y1, z1, xnodes, ynodes, ...
     'interp', interp_name, ...
     'regularizer', reg_name, ...
     'solver', solver_name, ...
@@ -82,9 +105,9 @@ for ci = 1:size(aniso_combos, 1)
 end
 
 %% Save
-synth_x = x_s;
-synth_y = y_s;
-synth_z = z_s;
+synth_x = x1;
+synth_y = y1;
+synth_z = z1;
 synth_xnodes = xnodes;
 synth_ynodes = ynodes;
 

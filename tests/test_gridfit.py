@@ -58,6 +58,21 @@ def test_gridfit_anisotropic_vs_octave(interp, regularizer):
     np.testing.assert_allclose(gf.zgrid, ref, atol=1e-10)
 
 
+@pytest.mark.parametrize("interp", INTERPS)
+@pytest.mark.parametrize("regularizer", REGULARIZERS)
+def test_gridfit_lsqr_vs_normal(interp, regularizer):
+    """lsqr solver must agree with normal solver (both solve the same system)."""
+    kwargs = dict(
+        xnodes=_synth_xnodes, ynodes=_synth_ynodes,
+        smoothness=1, interp=interp, regularizer=regularizer,
+        extend="never",
+    )
+    gn = GridFit(_synth_x, _synth_y, _synth_z, solver="normal", **kwargs).fit()
+    gl = GridFit(_synth_x, _synth_y, _synth_z, solver="lsqr", **kwargs).fit()
+
+    np.testing.assert_allclose(gl.zgrid, gn.zgrid, atol=1e-9)
+
+
 def test_gridfit_bluff():
     """Legacy test: bluff dataset with triangle/gradient/normal."""
     x = _bluff["x"].flatten()
