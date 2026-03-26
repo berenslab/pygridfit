@@ -278,7 +278,11 @@ def _build_diffusion_reg(
     Areg_x = csr_matrix((data_x, (row_x - 1, col_x)), shape=(ngrid, ngrid))
 
     # Combine
-    Areg = Areg_y + Areg_x  # sum of two csr_matrix => csr_matrix
+    Areg = Areg_y + Areg_x
+
+    # Remove all-zero rows (4 corner nodes), same as gradient regularizer
+    row_sums = abs(Areg).sum(axis=1).A.ravel()
+    Areg = Areg[row_sums != 0]
 
     return Areg
 
